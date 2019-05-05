@@ -1,7 +1,7 @@
 PROGRAM   = box_shooter
 CC        = gcc
 CFLAGS    = -g -Wall
-LDFLAGS   = -lGL -lGLU -lglut
+LDFLAGS   = -lGL -lGLU -lglut -lm
 
 $(PROGRAM): main.o
 	$(CC) -o $(PROGRAM) main.o $(LDFLAGS)

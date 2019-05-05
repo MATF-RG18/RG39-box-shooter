@@ -2,6 +2,13 @@
 #include <stdlib.h>
 #include <math.h>
 #include <GL/glut.h>
+#include <time.h>
+#include <string.h>
+
+/***** NAPOMENA ****/
+/*
+ Kod za on_mouse_motion preuzet i prilagodjen sa https://learnopengl.com/book/offline%20learnopengl.pdf*
+ */
 
 /* Dimenzije prozora */
 static int window_width, window_height;
@@ -10,8 +17,25 @@ static int window_width, window_height;
 static void on_keyboard(unsigned char key, int x, int y);
 static void on_reshape(int width, int height);
 static void on_display(void);
+static void on_mouse(int button, int state, int x, int y);
+static void on_mouse_motion(int x, int y);
 void material_and_light();
 
+/* Ugao rotacije oko y ose za pravac kamere*/
+float angleY = 0.0;
+/* Ugao rotacije oko x ose za pravac kamere*/
+float angleX = 0.0;
+/* Vektor koji predstavlja pravac kamere */
+float kx = 0.0f;
+float ky = 0.0f;
+float kz = -1.0f;
+
+/* Pozicija kamere */
+float x = 0.0f;
+float y = 0.0f;
+float z = 4.5f;
+
+/* Pomeraji za kvadratic */
 GLfloat dx = 0;
 GLfloat dy = 0;
 GLfloat dz = 0;
@@ -35,6 +59,10 @@ int main(int argc, char **argv)
 	glutKeyboardFunc(on_keyboard);
 	glutReshapeFunc(on_reshape);
 	glutDisplayFunc(on_display);
+	glutMouseFunc(on_mouse);
+	glutPassiveMotionFunc(on_mouse_motion);
+	
+	glutFullScreen();
 	
 	/* Obavlja se OpenGL inicijalizacija. */
 	glClearColor(0.4, 0.3, 0.5, 0.5);
@@ -96,15 +124,16 @@ static void on_reshape(int width, int height)
 	/* Pamte se sirina i visina prozora. */
 	window_width = width;
 	window_height = height;
+	
+	/* Podesava se viewport. */
+	glViewport(0, 0, window_width, window_height);
 }
 
 static void on_display(void)
 {
 	/* Brise se prethodni sadrzaj prozora. */
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	
-	/* Podesava se viewport. */
-	glViewport(0, 0, window_width, window_height);
+
 	
 	/* Podesava se projekcija. */
 	glMatrixMode(GL_PROJECTION);
@@ -112,16 +141,17 @@ static void on_display(void)
 	gluPerspective(
 		60,
 		1,
-		       1, 25);
-	
-	/* Podesava se tacka pogleda. */
+		0.0,
+		10.0
+	);
+	/* Namestanje tacke pogleda kamere*/
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-	gluLookAt(
-		3, 4, 5,
-	   0, 0, 0,
-	   0, 1, 0
-	);
+	gluLookAt(x, 1.0f, z, 
+		         x+kx, 1.0+ky, z+kz,
+			 0.0f, 1.0f, 0.0f
+ 		);
+	glDisable(GL_DEPTH_TEST);
 	
 	draw_coordinate_system();
 	draw_box();
@@ -148,41 +178,52 @@ static void draw_box()
 	glColor3f(0.3, 0.3, 0.3);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	glBegin(GL_POLYGON);
-		glVertex3f(2, 0, 2);
-		glVertex3f(2, 0, -2);
-		glVertex3f(-2, 0, -2);
-		glVertex3f(-2, 0, 2);
+		glVertex3f(4, 0, 4);
+		glVertex3f(4, 0, -4);
+		glVertex3f(-4, 0, -4);
+		glVertex3f(-4, 0, 4);
 	glEnd();
 	
 	/* Iscrtavanje levog zida */
 	glColor3f(0.5, 0.5, 0.5);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	glBegin(GL_POLYGON);
-	glVertex3f(-2, 0, 2);
-	glVertex3f(-2, 0, -2);
-	glVertex3f(-2, 1, -2);
-	glVertex3f(-2, 1, 2);
+		glVertex3f(-4, 0, 4);
+		glVertex3f(-4, 0, -4);
+		glVertex3f(-4, 5, -4);
+		glVertex3f(-4, 5, 4);
 	glEnd();
 	
 	/* Iscrtavanje prednjeg zida */
 	glColor3f(0.5, 0.5, 0.5);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	glBegin(GL_POLYGON);
-	glVertex3f(-2, 0, -2);
-	glVertex3f(2, 0, -2);
-	glVertex3f(2, 1, -2);
-	glVertex3f(-2, 1, -2);
+		glVertex3f(-4, 0, -4);
+		glVertex3f(4, 0, -4);
+		glVertex3f(4, 5, -4);
+		glVertex3f(-4, 5, -4);
 	glEnd();
 	
 	/* Iscrtavanje desnog zida */
 	glColor3f(0.5, 0.5, 0.5);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	glBegin(GL_POLYGON);
-	glVertex3f(2, 0, -2);
-	glVertex3f(2, 1, -2);
-	glVertex3f(2, 1, 2);
-	glVertex3f(2, 0, 2);
+		glVertex3f(4, 0, -4);
+		glVertex3f(4, 5, -4);
+		glVertex3f(4, 5, 4);
+		glVertex3f(4, 0, 4);
 	glEnd();
+	
+	/* Iscrtavanje plafona */
+	glColor3f(0.3, 0.3, 0.3);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	glBegin(GL_POLYGON);
+		glVertex3f(4, 5, 4);
+		glVertex3f(4, 5, -4);
+		glVertex3f(-4, 5, -4);
+		glVertex3f(-4, 5, 4);
+	glEnd();
+	
 	
 }
 
@@ -203,6 +244,63 @@ static void draw_coordinate_system()
 		glVertex3f(0, 0, 100);
 		
 	glEnd();
+}
+
+static void on_mouse(int button, int state, int x, int y){
+	switch(button){
+		case GLUT_LEFT_BUTTON:
+			if(state == GLUT_DOWN){
+				//printf("Pritisnut je levi klik\n");
+				glutSetCursor(GLUT_CURSOR_LEFT_RIGHT);
+			}		
+			break;
+		case GLUT_RIGHT_BUTTON:
+			if(state == GLUT_DOWN){
+				//printf("Pritisnut je desni klik\n"); 
+				glutSetCursor(GLUT_CURSOR_TOP_SIDE);
+			}
+			break;
+		default:
+			break;
+	}
+}
+
+/* Pozicija misa*/
+GLfloat lastX;
+GLfloat lastY;
+/* Osetljivost misa da ne leti po ekranu*/
+float sensitivity = 0.2;
+
+static void on_mouse_motion(int x, int y){
+
+	glutSetCursor(GLUT_CURSOR_FULL_CROSSHAIR);
+	// Calculate the offset movement between the last and current
+	// frame
+	GLfloat xoffset = x - lastX;
+	GLfloat yoffset = lastY - y; // reversed since y-coordinates range from bottom to top
+	
+	lastX = x;
+	lastY = y;
+	
+	xoffset *= sensitivity;
+	yoffset *= sensitivity;
+	
+	angleX += yoffset;
+	angleY += xoffset;
+	
+	if(angleX > 45.0f)
+		angleX = 45.0f;
+	if(angleX < -20.0f)
+		angleX = -20.0f;
+	if(angleY > -45.0f)
+		angleY = -45.0f;
+	if(angleY < -135.0f)
+		angleY = -135.0f;
+
+	kx = cos(M_PI/180.0*angleX)*cos(M_PI/180.0*angleY);
+	ky = sin(M_PI/180.0*angleX);
+	kz = cos(M_PI/180.0*angleX) * sin(M_PI/180.0*angleY);
+	
 }
 
 void material_and_light(){
