@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <GL/glut.h>
+#include <sys/time.h>
 #include <time.h>
 #include <string.h>
 
@@ -35,17 +36,23 @@ float x = 0.0f;
 float y = 0.0f;
 float z = 4.5f;
 
-/* Pomeraji za kvadratic */
-GLfloat dx = 0;
-GLfloat dy = 0;
-GLfloat dz = 0;
+int game_over = 0;
+time_t Time = 0;
+GLfloat diff_time;
+GLfloat game_time = 0;
+GLfloat beginTime;
+/* Fleg koji odredjuje stanje tajmera. */
+static int timer_active;
 
 
 static void draw_coordinate_system();
 static void draw_box();
+static void on_time(int value);
+void drawBitmapText(char *string, float x, float y, float z);
 
 int main(int argc, char **argv)
 {
+	srand(time(NULL));
 	/* Inicijalizuje se GLUT. */
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_RGB | GLUT_DEPTH | GLUT_DOUBLE);
@@ -55,6 +62,8 @@ int main(int argc, char **argv)
 	glutInitWindowPosition(350, 50);
 	glutCreateWindow("Box shooter");
 	
+	glutWarpPointer(glutGet(GLUT_SCREEN_WIDTH)/2, glutGet(GLUT_SCREEN_HEIGHT)/2);
+		
 	/* Registruju se callback funkcije. */
 	glutKeyboardFunc(on_keyboard);
 	glutReshapeFunc(on_reshape);
@@ -63,12 +72,13 @@ int main(int argc, char **argv)
 	glutPassiveMotionFunc(on_mouse_motion);
 	
 	glutFullScreen();
+
 	
 	/* Obavlja se OpenGL inicijalizacija. */
 	glClearColor(0.4, 0.3, 0.5, 0.5);
 	glEnable(GL_DEPTH_TEST);
 	glLineWidth(2);
-	
+		
 	/* Program ulazi u glavnu petlju. */
 	glutMainLoop();
 	
@@ -82,41 +92,42 @@ static void on_keyboard(unsigned char key, int x, int y)
 			/* Zavrsava se program. */
 			exit(0);
 			break;
-		case 'w':
-		case 'W':
-			if(dy + 0.1 > 1)
-				dy = dy;
-			else
-				dy = dy + 0.1;
-			glutPostRedisplay();
-			break;
-		case 's':
-		case 'S':
-			if(dy - 0.1 < 0)
-				dy = dy;
-			else
-				dy = dy - 0.1;
-			glutPostRedisplay();
-			break;
-		case 'a':
-		case 'A':
-			if(dx - 0.1 < -2)
-				dx = dx;
-			else
-				dx = dx - 0.1;
-			glutPostRedisplay();
-			break;
-		case 'd':
-		case 'D':
-			if(dx + 0.1 > 2)
-				dx = dx;
-			else
-				dx = dx + 0.1;
-			glutPostRedisplay();
+		case 'g':
+		case 'G':
+			if(!timer_active){
+				glutTimerFunc(0, on_time, 0);
+				beginTime = glutGet(GLUT_ELAPSED_TIME);
+				timer_active = 1;
+			}
 			break;
 		default:
 			break;
 	}
+}
+
+static void on_time(int value)
+{
+	/* Provera da li callback dolazi od ogovarajuceg tajmera*/
+	if(value != 0)
+		return;
+	
+	float newTime = glutGet(GLUT_ELAPSED_TIME);
+	diff_time = (newTime - beginTime)/1000.;
+	beginTime = newTime; 
+	game_time += diff_time;
+	
+	printf("%2.lf \n", game_time);
+	
+	if(game_time >= 30.00){
+		game_over = 1;
+		timer_active = 0;
+		glutIdleFunc(NULL);
+		glutPassiveMotionFunc(NULL);
+	}
+	
+	
+	if(timer_active)
+		glutTimerFunc(0, on_time, 0);
 }
 
 static void on_reshape(int width, int height)
@@ -127,6 +138,18 @@ static void on_reshape(int width, int height)
 	
 	/* Podesava se viewport. */
 	glViewport(0, 0, window_width, window_height);
+}
+
+void drawBitmapText(char *string,float x,float y, float z) 
+{  
+	glRasterPos3f(x, y, z);
+	char buffer[1024];
+	sprintf(buffer, "%s", string);
+	char c;	
+	for (int i=0; (c = buffer[i]) != '\0'; i++)
+	{
+		glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, c);
+	}
 }
 
 static void on_display(void)
@@ -156,22 +179,15 @@ static void on_display(void)
 	draw_coordinate_system();
 	draw_box();
 	
-	/* Iscrtavanje kvadrata */
-	glColor3f(5, 0, 3);
-	glBegin(GL_QUADS);
-		glVertex3f(0+dx, 0+dy, 0.1);
-		glVertex3f(0+dx, 0.1+dy, 0.1);
-		glVertex3f(0.1+dx, 0.1+dy, 0.1);
-		glVertex3f(0.1+dx, 0+dy, 0.1);
-	glEnd();
+	/* Ispisivanje vremena */
+	drawBitmapText("Time:\n", 0, 3, -1);
 	
-	glFlush();
 	glutPostRedisplay();
+	
 	
 	/* Slanje novog sadrzaja na ekran*/
 	glutSwapBuffers();
 }
-
 static void draw_box()
 {
 	/*Iscrtavanje poda*/
