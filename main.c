@@ -8,7 +8,10 @@
 
 /***** NAPOMENA ****/
 /*
- Kod za on_mouse_motion preuzet i prilagodjen sa https://learnopengl.com/book/offline%20learnopengl.pdf*
+ Kod za 
+ 1. on_mouse_motion preuzet i prilagodjen sa https://learnopengl.com/book/offline%20learnopengl.pdf
+ 2. ispis teksta preuzet od koleginice Andjelke Milovanovic
+
  */
 
 /* Dimenzije prozora */
@@ -34,21 +37,30 @@ float kz = -1.0f;
 /* Pozicija kamere */
 float x = 0.0f;
 float y = 0.0f;
-float z = 4.5f;
+float z = 4.0f;
 
+/* Tajemer za odbrojavanje do kraja igre */
 int game_over = 0;
 time_t Time = 0;
 GLfloat diff_time;
 GLfloat game_time = 0;
 GLfloat beginTime;
-/* Fleg koji odredjuje stanje tajmera. */
+char disp_time[1000];
+int timing;
+/* Fleg koji odredjuje stanje tajmera*/
 static int timer_active;
 
+/* Iscrtavanje kvadrata */
+float positionx[17];
+float positionz[17];
+float positiony[17];
 
 static void draw_coordinate_system();
 static void draw_box();
+void cubepositions();
+void cube();
 static void on_time(int value);
-void drawBitmapText(char *string, float x, float y, float z);
+void drawBitmapText();
 
 int main(int argc, char **argv)
 {
@@ -58,8 +70,8 @@ int main(int argc, char **argv)
 	glutInitDisplayMode(GLUT_RGB | GLUT_DEPTH | GLUT_DOUBLE);
 	
 	/* Kreira se prozor. */
-	glutInitWindowSize(650, 650);
-	glutInitWindowPosition(350, 50);
+	glutInitWindowSize(750, 650);
+	glutInitWindowPosition(350, 100);
 	glutCreateWindow("Box shooter");
 	
 	glutWarpPointer(glutGet(GLUT_SCREEN_WIDTH)/2, glutGet(GLUT_SCREEN_HEIGHT)/2);
@@ -71,14 +83,14 @@ int main(int argc, char **argv)
 	glutMouseFunc(on_mouse);
 	glutPassiveMotionFunc(on_mouse_motion);
 	
-	glutFullScreen();
-
 	
 	/* Obavlja se OpenGL inicijalizacija. */
 	glClearColor(0.4, 0.3, 0.5, 0.5);
 	glEnable(GL_DEPTH_TEST);
 	glLineWidth(2);
 		
+	cubepositions();
+	
 	/* Program ulazi u glavnu petlju. */
 	glutMainLoop();
 	
@@ -107,7 +119,7 @@ static void on_keyboard(unsigned char key, int x, int y)
 
 static void on_time(int value)
 {
-	/* Provera da li callback dolazi od ogovarajuceg tajmera*/
+	/* Provera da li callback dolazi od ogovarajuceg tajmera */
 	if(value != 0)
 		return;
 	
@@ -116,7 +128,13 @@ static void on_time(int value)
 	beginTime = newTime; 
 	game_time += diff_time;
 	
-	printf("%2.lf \n", game_time);
+	int timing = sprintf(disp_time,"%.2f", game_time);
+	if(timing < 0)
+		exit(1);
+	
+	
+	
+	printf("%.2lf\n", game_time);
 	
 	if(game_time >= 30.00){
 		game_over = 1;
@@ -140,16 +158,34 @@ static void on_reshape(int width, int height)
 	glViewport(0, 0, window_width, window_height);
 }
 
-void drawBitmapText(char *string,float x,float y, float z) 
+void drawBitmapText() 
 {  
-	glRasterPos3f(x, y, z);
-	char buffer[1024];
-	sprintf(buffer, "%s", string);
-	char c;	
-	for (int i=0; (c = buffer[i]) != '\0'; i++)
-	{
-		glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, c);
-	}
+	glMatrixMode(GL_PROJECTION); 
+	glPushMatrix();  
+	glLoadIdentity();
+	glMatrixMode(GL_MODELVIEW); 
+	glPushMatrix(); 
+	glLoadIdentity();
+	glColor3f(1, 0, 0);
+	gluOrtho2D(0.0, window_width, window_height, 0.0);                 
+	char display_string[32];
+	int words = sprintf(display_string,"%s", "Time:");
+	if(words < 0)
+		exit(1);
+	glRasterPos2i(window_width/2, window_height/2); 
+	int d = (int) strlen(display_string);
+	for (int i = 0; i < d; i++)
+		glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, display_string[i]);
+	glRasterPos2i(window_width/2+0.5, window_height/2+15); 
+	int l = (int) strlen(disp_time);
+	for (int i = 0; i < l; i++)
+		glutBitmapCharacter(GLUT_BITMAP_9_BY_15, disp_time[i]);
+	
+	glMatrixMode(GL_PROJECTION); 
+	glPopMatrix(); 
+	glMatrixMode(GL_MODELVIEW); 
+	glPopMatrix(); 
+	glutPostRedisplay();
 }
 
 static void on_display(void)
@@ -179,8 +215,13 @@ static void on_display(void)
 	draw_coordinate_system();
 	draw_box();
 	
+	
 	/* Ispisivanje vremena */
-	drawBitmapText("Time:\n", 0, 3, -1);
+	drawBitmapText();
+	
+	
+	cube();
+	
 	
 	glutPostRedisplay();
 	
@@ -188,56 +229,91 @@ static void on_display(void)
 	/* Slanje novog sadrzaja na ekran*/
 	glutSwapBuffers();
 }
+
+/* Postavlja slucajnu poziciju kocke */
+void cubepositions (void) {
+	
+	for (int i=0;i<17;i++)
+	{
+		positionx[i] = rand()/(float)RAND_MAX*4.5;
+		positiony[i] = rand()/(float)RAND_MAX*4.5;
+		positionz[i] = rand()/(float)RAND_MAX;
+	}
+}
+
+void cube (void) {
+	
+	for (int i=0;i<8-1;i++)
+	{
+		
+		glPushMatrix();
+		glColor3f(0.4, 1, 0.6);
+		glTranslated(-positionx[i + 1], positiony[i + 1], positionz[i + 1]);
+		glutSolidCube(0.5);
+		glPopMatrix();
+	}
+	
+	for (int i=8;i<17-1;i++)
+	{
+		
+		glPushMatrix();
+		glColor3f(0.4, 1, 0.6);
+		glTranslated(positionx[i + 1], positiony[i + 1], -positionz[i + 1]);
+		glutSolidCube(0.5); 
+		glPopMatrix();
+	}
+}
+
 static void draw_box()
 {
 	/*Iscrtavanje poda*/
 	glColor3f(0.3, 0.3, 0.3);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	glBegin(GL_POLYGON);
-		glVertex3f(4, 0, 4);
-		glVertex3f(4, 0, -4);
-		glVertex3f(-4, 0, -4);
-		glVertex3f(-4, 0, 4);
+		glVertex3f(4.5, 0, 4.5);
+		glVertex3f(4.5, 0, -4.5);
+		glVertex3f(-4.5, 0, -4.5);
+		glVertex3f(-4.5, 0, 4.5);
 	glEnd();
 	
 	/* Iscrtavanje levog zida */
 	glColor3f(0.5, 0.5, 0.5);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	glBegin(GL_POLYGON);
-		glVertex3f(-4, 0, 4);
-		glVertex3f(-4, 0, -4);
-		glVertex3f(-4, 5, -4);
-		glVertex3f(-4, 5, 4);
+		glVertex3f(-4.5, 0, 4.5);
+		glVertex3f(-4.5, 0, -4.5);
+		glVertex3f(-4.5, 5, -4.5);
+		glVertex3f(-4.5, 5, 4.5);
 	glEnd();
 	
 	/* Iscrtavanje prednjeg zida */
 	glColor3f(0.5, 0.5, 0.5);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	glBegin(GL_POLYGON);
-		glVertex3f(-4, 0, -4);
-		glVertex3f(4, 0, -4);
-		glVertex3f(4, 5, -4);
-		glVertex3f(-4, 5, -4);
+		glVertex3f(-4.5, 0, -4.5);
+		glVertex3f(4.5, 0, -4.5);
+		glVertex3f(4.5, 5, -4.5);
+		glVertex3f(-4.5, 5, -4.5);
 	glEnd();
 	
 	/* Iscrtavanje desnog zida */
 	glColor3f(0.5, 0.5, 0.5);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	glBegin(GL_POLYGON);
-		glVertex3f(4, 0, -4);
-		glVertex3f(4, 5, -4);
-		glVertex3f(4, 5, 4);
-		glVertex3f(4, 0, 4);
+		glVertex3f(4.5, 0, -4.5);
+		glVertex3f(4.5, 5, -4.5);
+		glVertex3f(4.5, 5, 4.5);
+		glVertex3f(4.5, 0, 4.5);
 	glEnd();
 	
 	/* Iscrtavanje plafona */
 	glColor3f(0.3, 0.3, 0.3);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	glBegin(GL_POLYGON);
-		glVertex3f(4, 5, 4);
-		glVertex3f(4, 5, -4);
-		glVertex3f(-4, 5, -4);
-		glVertex3f(-4, 5, 4);
+		glVertex3f(4.5, 5, 5);
+		glVertex3f(4.5, 5, -4.5);
+		glVertex3f(-4.5, 5, -4.5);
+		glVertex3f(-4.5, 5, 5);
 	glEnd();
 	
 	
