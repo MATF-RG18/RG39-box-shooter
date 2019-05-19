@@ -11,6 +11,7 @@
  Kod za 
  1. on_mouse_motion preuzet i prilagodjen sa https://learnopengl.com/book/offline%20learnopengl.pdf
  2. ispis teksta preuzet od koleginice Andjelke Milovanovic
+ 3. pucanje implementirano takodje zahvaljujuci koleginici Andjelki Milovanovic
 
  */
 
@@ -39,6 +40,12 @@ float x = 0.0f;
 float y = 0.0f;
 float z = 4.0f;
 
+/* Pozicija misa*/
+GLfloat lastX;
+GLfloat lastY;
+/* Osetljivost misa da ne leti po ekranu*/
+float sensitivity = 0.2;
+
 /* Tajemer za odbrojavanje do kraja igre */
 int game_over = 0;
 time_t Time = 0;
@@ -50,10 +57,25 @@ int timing;
 /* Fleg koji odredjuje stanje tajmera*/
 static int timer_active;
 
-/* Iscrtavanje kvadrata */
+/* Iscrtavanje kocki */
 float positionx[17];
 float positionz[17];
 float positiony[17];
+
+
+/* Tajmer za ispucavanje kuglice */
+float t = 0;
+static int move_ball = 0;
+/* Pozicija obojene kuglice */
+float x_ball; 
+float y_ball; 
+float z_ball; 
+/* Vektor pravca obojene kuglice */
+float bx = 0.0f;
+float by = 0.0f;
+float bz = -1.0f;
+/* brzina kuglice */
+float v = 7.0f;
 
 static void draw_coordinate_system();
 static void draw_box();
@@ -61,6 +83,9 @@ void cubepositions();
 void cube();
 static void on_time(int value);
 void drawBitmapText();
+void paintball();
+static void on_mouse(int button, int state, int x, int y);
+void moving_ball(int value);
 
 int main(int argc, char **argv)
 {
@@ -139,7 +164,7 @@ static void on_time(int value)
 	if(game_time >= 30.00){
 		game_over = 1;
 		timer_active = 0;
-		glutIdleFunc(NULL);
+		/*glutIdleFunc(NULL);*/
 		glutPassiveMotionFunc(NULL);
 	}
 	
@@ -215,13 +240,16 @@ static void on_display(void)
 	draw_coordinate_system();
 	draw_box();
 	
+	cube();
+	
+	x_ball = x;
+	y_ball = y;
+	z_ball = z;
+	
+	paintball();
 	
 	/* Ispisivanje vremena */
 	drawBitmapText();
-	
-	
-	cube();
-	
 	
 	glutPostRedisplay();
 	
@@ -338,12 +366,35 @@ static void draw_coordinate_system()
 	glEnd();
 }
 
+/* Crtam kuglicu u boji. Boja se menja sa promenom koeficijenta pravca :D! */
+void paintball(){
+	glPushMatrix();
+	glColor3f(1, 1, 1);
+	
+	x_ball = x_ball+t*bx*v;
+	/* ovde 0.9 posteriori, da ne puca iz noge, a ni iz glave! */
+	y_ball = y_ball+0.9f+t*by*v; 
+	z_ball = z_ball+t*bz*v;
+	
+	glTranslatef(x_ball, y_ball, z_ball);
+	glutSolidSphere(0.05f, 30, 30);
+	glPopMatrix();
+}
+
 static void on_mouse(int button, int state, int x, int y){
+	(void)x;
+	(void)y;
 	switch(button){
 		case GLUT_LEFT_BUTTON:
 			if(state == GLUT_DOWN){
-				//printf("Pritisnut je levi klik\n");
-				glutSetCursor(GLUT_CURSOR_LEFT_RIGHT);
+				if(!move_ball && timer_active == 1){
+					bx = kx;
+					by = ky;
+					bz = kz;
+					t = 0;
+					glutTimerFunc(30, moving_ball, 1);
+					move_ball = 1; 
+				}
 			}		
 			break;
 		case GLUT_RIGHT_BUTTON:
@@ -356,15 +407,26 @@ static void on_mouse(int button, int state, int x, int y){
 			break;
 	}
 }
-
-/* Pozicija misa*/
-GLfloat lastX;
-GLfloat lastY;
-/* Osetljivost misa da ne leti po ekranu*/
-float sensitivity = 0.2;
+void moving_ball(int value){
+	if (value != 1)
+		return;
+	
+	/* Ako je loptica izasla iz sobe -> nema vise loptice */
+	if(x_ball > 5.0f || x_ball < -5.5f || 
+		y_ball > 5.0f || y_ball < 0.0f  || 
+		z_ball > 5.0f || z_ball < -5.0f){
+		move_ball = 0;
+	t = 0;
+	return;        
+		}
+	
+	t += .2f;
+	if (move_ball)
+		glutTimerFunc(30, moving_ball, value);
+}
 
 static void on_mouse_motion(int x, int y){
-
+	
 	glutSetCursor(GLUT_CURSOR_FULL_CROSSHAIR);
 	// Calculate the offset movement between the last and current
 	// frame
@@ -392,7 +454,6 @@ static void on_mouse_motion(int x, int y){
 	kx = cos(M_PI/180.0*angleX)*cos(M_PI/180.0*angleY);
 	ky = sin(M_PI/180.0*angleX);
 	kz = cos(M_PI/180.0*angleX) * sin(M_PI/180.0*angleY);
-	
 }
 
 void material_and_light(){
