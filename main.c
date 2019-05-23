@@ -82,9 +82,6 @@ float radius = 0.05f;
 int score = 0;
 char disp_score[256];
 
-void init_lights();
-void set_material();
-
 static void draw_coordinate_system();
 static void draw_box();
 void cubepositions();
@@ -95,6 +92,8 @@ void drawScore();
 void shoot();
 static void on_mouse(int button, int state, int x, int y);
 void moving_ball(int value);
+
+void init_lights();
 
 int main(int argc, char **argv)
 {
@@ -154,6 +153,9 @@ static void on_keyboard(unsigned char key, int x, int y)
 				game_time = 0;
 				score = 0;
 				glutTimerFunc(0, on_time, 0);
+				kx = 0.0f;
+				ky = 0.0f;
+				kz = -1.0f;
 				beginTime = glutGet(GLUT_ELAPSED_TIME);
 				timer_active = 1;
 			}
@@ -208,9 +210,6 @@ void drawBitmapText()
 	glPushMatrix(); 
 	glLoadIdentity();
 	
-	glDisable(GL_LIGHT0);
-	glDisable(GL_LIGHTING);
-	
 	glColor3f(1, 0, 0);
 	gluOrtho2D(0.0, window_width, window_height, 0.0);                 
 	char display_string[20];
@@ -226,8 +225,6 @@ void drawBitmapText()
 	for (int i = 0; i < l; i++)
 		glutBitmapCharacter(GLUT_BITMAP_9_BY_15, disp_time[i]);
 	
-	glEnable(GL_LIGHT0);
-	glEnable(GL_LIGHTING);
 	
 	glMatrixMode(GL_PROJECTION); 
 	glPopMatrix(); 
@@ -246,10 +243,6 @@ void drawScore(){
 	glPushMatrix(); 
 	glLoadIdentity();
 	
-	
-	glDisable(GL_LIGHT0);
-	glDisable(GL_LIGHTING);
-	
 	glColor3f(1, 0, 0);
 	gluOrtho2D(0.0, window_width, window_height, 0.0);                 
 	
@@ -266,9 +259,6 @@ void drawScore(){
 	int l = (int) strlen(disp_score);
 	for (int i = 0; i < l; i++)
 		glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, disp_score[i]);
-	
-	glEnable(GL_LIGHT0);
-	glEnable(GL_LIGHTING);
 	
 	glMatrixMode(GL_PROJECTION); 
 	glPopMatrix(); 
@@ -301,7 +291,9 @@ static void on_display(void)
 	);
 	
 	init_lights();
-	set_material();
+	glShadeModel(GL_SMOOTH);
+	glEnable(GL_COLOR_MATERIAL);
+	
 	
 	glDisable(GL_DEPTH_TEST);
 	
@@ -346,7 +338,7 @@ void cubepositions (void) {
 
 void cube (void) {
 	
-	for (int i=0;i<25-1;i++)
+	for (int i=0;i<24;i++)
 	{
 		
 		glPushMatrix();
@@ -477,7 +469,7 @@ void moving_ball(int value){
 	
 	/* Ako je loptica izasla iz sobe nema vise loptice */
 	if(x_ball > 10.0f || x_ball < 0.0f || 
-		y_ball > 5.0f || y_ball < 0.0f  || 
+		y_ball > 6.0f || y_ball < 0.0f  || 
 		z_ball > 10.0f || z_ball < 0.0f){
 		move_ball = 0;
 	t = 0;
@@ -486,16 +478,16 @@ void moving_ball(int value){
 		
 		/* Ako je kuglica pogodila kocku nestaje kocka*/
 		int i;
-		for(i = 0; i < 17; i++){
+		for(i = 0; i < 25; i++){
 			if(z_ball  <= positionz[i] + 0.5 && z_ball >= positionz[i] - 0.5
 				&& y_ball <= positiony[i] + 0.5 && y_ball >= positiony[i] - 0.5
 				&& x_ball >= positionx[i] - 0.5 && x_ball <= positionx[i] + 0.5){
 				
-				/* Kocka nestaje */
-				positionx[i] = positionx[i] + t*v;
-			positiony[i] = positiony[i] + t*v;
-			positionz[i] = positionz[i] + t*v;
-			score += 1;
+				/* Kocka se generise na drugom mestu */
+				positionx[i] = rand()/(float)RAND_MAX*9;
+				positiony[i] = rand()/(float)RAND_MAX*4;
+				positionz[i] = rand()/(float)RAND_MAX*5;
+				score += 1;
 				}
 		}
 		
@@ -538,7 +530,7 @@ static void on_mouse_motion(int x, int y){
 void init_lights()
 {
 	/* Pozicija svetla (u pitanju je direkcionalno svetlo). */
-	GLfloat light_position[] = { 5, 5, 1, 0 };
+	GLfloat light_position[] = { 5, 5, 5, 0 };
 	
 	/* Ambijentalna boja svetla. */
 	GLfloat light_ambient[] = { 0.1, 0.1, 0.1, 1 };
@@ -556,27 +548,6 @@ void init_lights()
 	glLightfv(GL_LIGHT0, GL_AMBIENT, light_ambient);
 	glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse);
 	glLightfv(GL_LIGHT0, GL_SPECULAR, light_specular);
-}
-
-void set_material()
-{
-	/* Koeficijenti ambijentalne refleksije materijala. */
-	GLfloat ambient_coeffs[] = { 0.1, 0.1, 0.1, 1 };
-	
-	/* Koeficijenti difuzne refleksije materijala. */
-	GLfloat diffuse_coeffs[] = { 0.3, 0.7, 0.3, 1 };
-	
-	/* Koeficijenti spekularne refleksije materijala. */
-	GLfloat specular_coeffs[] = { 1, 1, 1, 1 };
-	
-	/* Koeficijent glatkosti materijala. */
-	GLfloat shininess = 30;
-	
-	/* Podesavaju se parametri materijala. */
-	glMaterialfv(GL_FRONT, GL_AMBIENT, ambient_coeffs);
-	glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse_coeffs);
-	glMaterialfv(GL_FRONT, GL_SPECULAR, specular_coeffs);
-	glMaterialf(GL_FRONT, GL_SHININESS, shininess);
 }
 
 /*
