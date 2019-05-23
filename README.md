@@ -1,5 +1,5 @@
 # RG39-box-shooter
-Box Shooter je grica nastala kao projekat kursa Racunarska grafika na Matematickom faklutetu. FPS (First person shooter) dizajn, implementirano u programsko jeziku C, koristeci OpenGL biblioteku.
+Box Shooter je igrica nastala kao projekat kursa Racunarska grafika na Matematickom faklutetu. FPS (First person shooter) dizajn, implementirano u programskom jeziku C, koristeci OpenGL biblioteku.
 
 Cilj igre je da korisnik osvoji sto veci broj bodova pogadjajuci kutije. Vreme trajanja igre je 30 sekundi.
 
