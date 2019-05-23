@@ -78,6 +78,9 @@ float v = 7.0f;
 /* Radijus kuglice */
 float radius = 0.05f;
 
+/* Indikator da li je tajmer bio aktivan */
+static int ind = 0;
+
 /* Broj osvojenih bodova */
 int score = 0;
 char disp_score[256];
@@ -142,30 +145,32 @@ static void on_keyboard(unsigned char key, int x, int y)
 			if(!timer_active){
 				glutTimerFunc(0, on_time, 0);
 				beginTime = glutGet(GLUT_ELAPSED_TIME);
+				score = 0;
 				timer_active = 1;
+				ind = 1;
 			}
 			break;
 		case 'r':
 		case 'R':
-			if(!timer_active && game_over == 1){
+			if(timer_active == 0 && game_over == 1){
 				timer_active = 0;
 				move_ball = 0;
 				game_time = 0;
+				game_over = 0;
 				score = 0;
-				glutTimerFunc(0, on_time, 0);
-				kx = 0.0f;
-				ky = 0.0f;
-				kz = -1.0f;
+				kx = 0.0;
+				ky = 0.0;
+				kz = -1.0;
 				beginTime = glutGet(GLUT_ELAPSED_TIME);
-				timer_active = 1;
+				
+				glutPostRedisplay();
 			}
 		default:
 			break;
 	}
 }
 
-static void on_time(int value)
-{
+static void on_time(int value){
 	/* Provera da li callback dolazi od ogovarajuceg tajmera */
 	if(value != 0)
 		return;
@@ -182,10 +187,7 @@ static void on_time(int value)
 	if(game_time >= 30.00){
 		game_over = 1;
 		timer_active = 0;
-		/*glutIdleFunc(NULL);*/
-		glutPassiveMotionFunc(NULL);
 	}
-	
 	
 	if(timer_active)
 		glutTimerFunc(0, on_time, 0);
@@ -210,6 +212,9 @@ void drawBitmapText()
 	glPushMatrix(); 
 	glLoadIdentity();
 	
+	glDisable(GL_LIGHT0);
+	glDisable(GL_LIGHTING);
+	
 	glColor3f(1, 0, 0);
 	gluOrtho2D(0.0, window_width, window_height, 0.0);                 
 	char display_string[20];
@@ -225,6 +230,8 @@ void drawBitmapText()
 	for (int i = 0; i < l; i++)
 		glutBitmapCharacter(GLUT_BITMAP_9_BY_15, disp_time[i]);
 	
+	glEnable(GL_LIGHT0);
+	glEnable(GL_LIGHTING);
 	
 	glMatrixMode(GL_PROJECTION); 
 	glPopMatrix(); 
@@ -243,11 +250,17 @@ void drawScore(){
 	glPushMatrix(); 
 	glLoadIdentity();
 	
+	
+	glDisable(GL_LIGHT0);
+	glDisable(GL_LIGHTING);
+	
 	glColor3f(1, 0, 0);
 	gluOrtho2D(0.0, window_width, window_height, 0.0);                 
 	
 	char display_string[20];
+	
 	int words = sprintf(display_string,"%s", "SCORE:");
+	
 	if(words < 0)
 		exit(1);
 	glRasterPos2i(window_width/2-50, window_height/2-70); 
@@ -259,6 +272,9 @@ void drawScore(){
 	int l = (int) strlen(disp_score);
 	for (int i = 0; i < l; i++)
 		glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, disp_score[i]);
+	
+	glEnable(GL_LIGHT0);
+	glEnable(GL_LIGHTING);
 	
 	glMatrixMode(GL_PROJECTION); 
 	glPopMatrix(); 
@@ -316,7 +332,7 @@ static void on_display(void)
 	drawBitmapText();
 	
 	/* Ispisivanje rezultata*/
-	if(!timer_active){
+	if(!timer_active && ind == 1){
 		drawScore();
 	}
 	
@@ -364,44 +380,44 @@ static void draw_box()
 	
 	/* Iscrtavanje levog zida */
 	glColor3f(0.3, 0.2, 0.7);
-	 glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-	 glBegin(GL_POLYGON);
-	 glVertex3f(0, 0, 10);
-	 glVertex3f(0, 0, 0);
-	 glVertex3f(0, 5, 0);
-	 glVertex3f(0, 5, 10);
-	 glEnd();
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	glBegin(GL_POLYGON);
+	glVertex3f(0, 0, 10);
+	glVertex3f(0, 0, 0);
+	glVertex3f(0, 5, 0);
+	glVertex3f(0, 5, 10);
+	glEnd();
 	
 	/* Iscrtavanje prednjeg zida */
 	glColor3f(0.2, 0.4, 0.7);
-	 glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-	 glBegin(GL_POLYGON);
-	 glVertex3f(0, 0, 0);
-	 glVertex3f(10, 0, 0);
-	 glVertex3f(10, 5, 0);
-	 glVertex3f(0, 5, 0);
-	 glEnd();
-	 
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	glBegin(GL_POLYGON);
+	glVertex3f(0, 0, 0);
+	glVertex3f(10, 0, 0);
+	glVertex3f(10, 5, 0);
+	glVertex3f(0, 5, 0);
+	glEnd();
+	
 	/* Iscrtavanje desnog zida */
 	glColor3f(0.4, 0.2, 0.7);
-	 glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-	 glBegin(GL_POLYGON);
-	 glVertex3f(10, 0, 0);
-	 glVertex3f(10, 5, 0);
-	 glVertex3f(10, 5, 10);
-	 glVertex3f(10, 0, 10);
-	 glEnd();
-	 
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	glBegin(GL_POLYGON);
+	glVertex3f(10, 0, 0);
+	glVertex3f(10, 5, 0);
+	glVertex3f(10, 5, 10);
+	glVertex3f(10, 0, 10);
+	glEnd();
+	
 	/* Iscrtavanje plafona */
 	glColor3f(0.2, 0.2, 0.7);
-	 glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-	 glBegin(GL_POLYGON);
-	 glVertex3f(10, 5, 10);
-	 glVertex3f(10, 5, 0);
-	 glVertex3f(0, 5, 0);
-	 glVertex3f(0, 5, 10);
-	 glEnd();
-	 
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	glBegin(GL_POLYGON);
+	glVertex3f(10, 5, 10);
+	glVertex3f(10, 5, 0);
+	glVertex3f(0, 5, 0);
+	glVertex3f(0, 5, 10);
+	glEnd();
+	
 }
 
 static void draw_coordinate_system()
@@ -442,8 +458,7 @@ static void on_mouse(int button, int state, int x, int y){
 	switch(button){
 		case GLUT_LEFT_BUTTON:
 			if(state == GLUT_DOWN){
-				/*!move_ball && timer_active == 1*/
-				if(!move_ball){
+				if(!move_ball && timer_active == 1){
 					bx = kx;
 					by = ky;
 					bz = kz;
@@ -452,12 +467,6 @@ static void on_mouse(int button, int state, int x, int y){
 					move_ball = 1; 
 				}
 			}		
-			break;
-		case GLUT_RIGHT_BUTTON:
-			if(state == GLUT_DOWN){
-				//printf("Pritisnut je desni klik\n"); 
-				glutSetCursor(GLUT_CURSOR_TOP_SIDE);
-			}
 			break;
 		default:
 			break;
@@ -472,7 +481,7 @@ void moving_ball(int value){
 		y_ball > 6.0f || y_ball < 0.0f  || 
 		z_ball > 10.0f || z_ball < 0.0f){
 		move_ball = 0;
-	t = 0;
+		t = 0;
 	return;        
 		}
 		
@@ -488,7 +497,13 @@ void moving_ball(int value){
 				positiony[i] = rand()/(float)RAND_MAX*4;
 				positionz[i] = rand()/(float)RAND_MAX*5;
 				score += 1;
+				/*Ako je loptica pogodila kocku, nestaje */
+				x_ball = 100;
+				y_ball = 100;
+				z_ball = 100;
+				t = 0;
 				}
+			
 		}
 		
 		t += .2f;
@@ -527,13 +542,12 @@ static void on_mouse_motion(int x, int y){
 	kz = cos(M_PI/180.0*angleX) * sin(M_PI/180.0*angleY);
 }
 
-void init_lights()
-{
+void init_lights(){
 	/* Pozicija svetla (u pitanju je direkcionalno svetlo). */
-	GLfloat light_position[] = { 5, 5, 5, 0 };
+	GLfloat light_position[] = { 0.5, 0.2, 0.5, 1 };
 	
 	/* Ambijentalna boja svetla. */
-	GLfloat light_ambient[] = { 0.1, 0.1, 0.1, 1 };
+	GLfloat light_ambient[] = { 0.3, 0.3, 0.3, 1 };
 	
 	/* Difuzna boja svetla. */
 	GLfloat light_diffuse[] = { 0.7, 0.7, 0.7, 1 };
@@ -549,25 +563,3 @@ void init_lights()
 	glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse);
 	glLightfv(GL_LIGHT0, GL_SPECULAR, light_specular);
 }
-
-/*
-void material_and_light(){
-	GLfloat light_ambient[] = { 1.0, 1.0, .0, 1 };
-	GLfloat light_diffuse[] = { 0.7, 0.7, 0.7, 1 };
-	GLfloat light_specular[] = { 0.9, 0.9, 0.9, 1 };
-	
-	GLfloat ambient_coeffs[] = { 1.0, 0.1, 0.1, 1 };
-	GLfloat diffuse_coeffs[] = { 0.0, 0.0, 0.8, 1 };
-	GLfloat specular_coeffs[] = { 1, 1, 1, 1 };
-	GLfloat shininess = 30;   
-	
-	
-	glLightfv(GL_LIGHT0, GL_AMBIENT, light_ambient);
-	glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse);
-	glLightfv(GL_LIGHT0, GL_SPECULAR, light_specular);
-
-	glMaterialfv(GL_FRONT, GL_AMBIENT, ambient_coeffs);
-	glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse_coeffs);
-	glMaterialfv(GL_FRONT, GL_SPECULAR, specular_coeffs);
-	glMaterialf(GL_FRONT, GL_SHININESS, shininess);
-}*/
