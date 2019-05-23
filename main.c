@@ -98,6 +98,8 @@ void moving_ball(int value);
 
 void init_lights();
 
+void initialize();
+
 int main(int argc, char **argv)
 {
 	srand(time(NULL));
@@ -126,11 +128,54 @@ int main(int argc, char **argv)
 	glLineWidth(2);
 	
 	cubepositions();
+	initialize();
 	
 	/* Program ulazi u glavnu petlju. */
 	glutMainLoop();
 	
 	return 0;
+}
+
+void initialize()
+{
+	
+	/* Ugao rotacije oko y ose za pravac kamere*/
+	angleY = 0.0;
+	/* Ugao rotacije oko x ose za pravac kamere*/
+	angleX = 0.0;
+	
+	/* Vektor koji predstavlja pravac kamere */
+	kx = 0.0f;
+	ky = 0.0f;
+	kz = -1.0f;
+	
+	/* Pozicija kamere */
+	x = 5.0f;
+	y = 0.0f;
+	z = 9.0f;
+	
+	/* Tajmer za odbrojavanje do kraja igre */
+	game_over = 0;
+	game_time = 0;
+	/* Fleg koji odredjuje stanje tajmera*/
+	timer_active = 0;
+	
+	/* Tajmer za ispucavanje kuglice */
+	t = 0;
+	move_ball = 0;
+	/* Vektor pravca kuglice */
+	bx = 0.0f;
+	by = 0.0f;
+	bz = -1.0f;
+	/* brzina kuglice */
+	v = 7.0f;
+	
+	/* Indikator da li je tajmer bio aktivan */
+	ind = 0;
+	
+	/* Broj osvojenih bodova */
+	score = 0;
+	
 }
 
 static void on_keyboard(unsigned char key, int x, int y)
