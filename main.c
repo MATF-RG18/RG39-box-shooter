@@ -497,11 +497,6 @@ void moving_ball(int value){
 				positiony[i] = rand()/(float)RAND_MAX*4;
 				positionz[i] = rand()/(float)RAND_MAX*5;
 				score += 1;
-				/*Ako je loptica pogodila kocku, nestaje */
-				x_ball = 100;
-				y_ball = 100;
-				z_ball = 100;
-				t = 0;
 				}
 			
 		}
