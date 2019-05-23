@@ -368,7 +368,7 @@ void drawScore(){
 	for (int i = 0; i < d; i++)
 		glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, display_string[i]);
 	
-	glRasterPos2i(window_width/2+5, window_height/2+70); 
+	glRasterPos2i(window_width/2+5 , window_height/2+70); 
 	int l = (int) strlen(disp_score);
 	for (int i = 0; i < l; i++)
 		glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, disp_score[i]);
